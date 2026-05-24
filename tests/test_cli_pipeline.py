@@ -52,14 +52,8 @@ def test_cli_align_plot_warp_pipeline(tmp_path, monkeypatch):
 
     main([
         "plot",
-        "--ts_ref",
-        str(artifact_dir / "ts_ref.npy"),
-        "--ts_stream",
-        str(artifact_dir / "ts_stream.npy"),
-        "--path_ref",
-        str(artifact_dir / "path_ref.npy"),
-        "--path_stream",
-        str(artifact_dir / "path_stream.npy"),
+        "--session",
+        out_prefix,
         "--output_png",
         "test_alignment.png",
     ])
@@ -73,14 +67,8 @@ def test_cli_align_plot_warp_pipeline(tmp_path, monkeypatch):
         str(input_video),
         "--output_video",
         "test_warped.mp4",
-        "--ts_ref",
-        str(artifact_dir / "ts_ref.npy"),
-        "--ts_stream",
-        str(artifact_dir / "ts_stream.npy"),
-        "--path_ref",
-        str(artifact_dir / "path_ref.npy"),
-        "--path_stream",
-        str(artifact_dir / "path_stream.npy"),
+        "--session",
+        out_prefix,
     ])
 
     output_video = tmp_path / "output" / "test_warped.mp4"

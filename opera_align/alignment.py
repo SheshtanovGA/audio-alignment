@@ -3,7 +3,6 @@ from typing import Tuple
 import numpy as np
 
 def compute_dtw_path_fastdtw(fastdtw, emb_ref: np.ndarray, emb_stream: np.ndarray):
-    # fastdtw returns distance and path
     dist, path = fastdtw(emb_ref, emb_stream, dist=lambda x, y: np.linalg.norm(x - y))
     path_ref, path_stream = zip(*path)
     return np.array(path_ref), np.array(path_stream)
