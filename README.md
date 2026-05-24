@@ -23,7 +23,17 @@ Chroma + DTW:
 python -m opera_align align --feature chroma --chroma_type cqt --ref_wav sources/1.wav --stream_wav sources/2.wav --out_prefix session_chroma --backend librosa
 ```
 
-Plot alignment (paths inferred from `--out_prefix` used during align):
+**Full pipeline** (align + plot + warp video in one step):
+```
+python -m opera_align pipeline --ref_wav sources/ref.wav --stream_wav sources/stream.wav --video sources/stream.mp4 --session myrun --feature mfcc --backend librosa
+```
+
+Or use the standalone script:
+```
+python scripts/align_and_warp.py --ref-wav sources/ref.wav --stream-wav sources/stream.wav --video sources/stream.mp4 --feature mfcc --backend librosa
+```
+
+Plot alignment (paths inferred from `--session` used during align):
 ```
 python -m opera_align plot --session session3 --output_png alignment.png
 ```

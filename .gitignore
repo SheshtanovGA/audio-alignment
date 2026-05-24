@@ -5,3 +5,5 @@ sources/
 legacy/
 *.egg-info/
 *.cache
+*.mp4
+*.wav

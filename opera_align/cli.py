@@ -4,6 +4,7 @@ import numpy as np
 import os
 
 from . import io_utils, audio_features, alignment, subtitle_mapper, plotting, video_warp
+from . import pipeline as pipeline_mod
 
 
 def _alignment_paths_from_args(args) -> dict:
@@ -37,53 +38,59 @@ def _add_session_artifact_args(parser):
         )
 
 
-def cmd_align(args):
-    import librosa
-
-    openl3 = None
-    if args.feature == "openl3":
-        try:
-            import openl3 as openl3_mod
-        except Exception as e:
-            raise RuntimeError("openl3 is required when --feature openl3") from e
-        openl3 = openl3_mod
-
-    print("Loading audio...")
-    y_ref, sr_ref = audio_features.load_audio(librosa, args.ref_wav, sr=args.sr)
-    y_stream, sr_stream = audio_features.load_audio(librosa, args.stream_wav, sr=args.sr)
-
-    hop_length = args.hop_length if args.hop_length is not None else int(args.hop_size * args.sr)
-    extract_kw = dict(
-        method=args.feature,
+def _align_kwargs_from_args(args):
+    return dict(
+        sr=args.sr,
+        feature=args.feature,
+        backend=args.backend,
         hop_size=args.hop_size,
-        hop_length=hop_length,
+        hop_length=args.hop_length,
         embedding_size=args.embedding_size,
         n_mfcc=args.n_mfcc,
         chroma_type=args.chroma_type,
-        openl3=openl3,
     )
 
-    print(f"Extracting {args.feature} features...")
-    emb_ref, ts_ref = audio_features.extract_features(librosa, y_ref, sr_ref, **extract_kw)
-    emb_stream, ts_stream = audio_features.extract_features(librosa, y_stream, sr_stream, **extract_kw)
 
-    emb_ref = audio_features.normalize_embeddings(emb_ref)
-    emb_stream = audio_features.normalize_embeddings(emb_stream)
-
-    print("Computing DTW...")
-    path_ref, path_stream = alignment.compute_dtw_path(emb_ref, emb_stream, backend=args.backend)
-
-    mapped_ref_times = ts_ref[path_ref]
-    mapped_stream_times = ts_stream[path_stream]
-
-    io_utils.safe_npy_save(ts_ref, "artifacts/" + args.out_prefix + "/" + "ts_ref.npy")
-    io_utils.safe_npy_save(ts_stream, "artifacts/" + args.out_prefix + "/" + "ts_stream.npy")
-    io_utils.safe_npy_save(path_ref, "artifacts/" + args.out_prefix + "/" + "path_ref.npy")
-    io_utils.safe_npy_save(path_stream, "artifacts/" + args.out_prefix + "/" + "path_stream.npy")
+def cmd_align(args):
+    artifacts_dir = getattr(args, "artifacts_dir", "artifacts")
+    result = pipeline_mod.run_alignment(
+        args.ref_wav,
+        args.stream_wav,
+        args.out_prefix,
+        artifacts_dir=artifacts_dir,
+        **_align_kwargs_from_args(args),
+    )
 
     if args.subtitles:
-        subtitle_mapper.map_subtitles(args.subtitles, mapped_ref_times, mapped_stream_times, "output/" + args.session + "_" + args.out_subtitles)
-        print(f"Mapped subtitles written to output/{args.session}_{args.out_subtitles}")
+        out_name = getattr(args, "out_subtitles", "mapped_subtitles.csv")
+        out_path = os.path.join("output", out_name)
+        subtitle_mapper.map_subtitles(
+            args.subtitles,
+            result.mapped_ref_times,
+            result.mapped_stream_times,
+            out_path,
+        )
+        print(f"Mapped subtitles written to {out_path}")
+
+
+def cmd_pipeline(args):
+    session = args.session or os.path.splitext(os.path.basename(args.video))[0]
+    outputs = pipeline_mod.run_pipeline(
+        args.ref_wav,
+        args.stream_wav,
+        args.video,
+        session,
+        output_dir=args.output_dir,
+        artifacts_dir=args.artifacts_dir,
+        plot_name=args.plot_name,
+        video_name=args.video_name,
+        subtitles_csv=args.subtitles,
+        warp_audio=not args.no_audio,
+        **_align_kwargs_from_args(args),
+    )
+    print(f"Artifacts: {outputs['artifact_dir']}")
+    print(f"Plot:      {outputs['plot_path']}")
+    print(f"Video:     {outputs['video_path']}")
 
 
 def cmd_map_subtitles(args):
@@ -124,7 +131,13 @@ def cmd_warp(args):
         mapped_ref_times = ts_ref[path_ref]
         mapped_stream_times = ts_stream[path_stream]
 
-    video_warp.warp_video(args.input_video, mapped_ref_times, mapped_stream_times, "output/" + args.session + "_" + args.output_video)
+    video_warp.warp_video(
+        args.input_video,
+        mapped_ref_times,
+        mapped_stream_times,
+        "output/" + args.session + "_" + args.output_video,
+        warp_audio=not args.no_audio,
+    )
     print(f"Warped video written to output/{args.session}_{args.output_video}")
 
 
@@ -147,6 +160,29 @@ def main(argv=None):
     p_align.add_argument('--chroma_type', choices=['cqt', 'stft'], default='cqt')
     p_align.add_argument('--backend', choices=['fastdtw', 'librosa', 'fallback'], default='fastdtw')
 
+    p_pipeline = sub.add_parser(
+        "pipeline",
+        help="Align audio, plot alignment, and warp video (one command)",
+    )
+    p_pipeline.add_argument("--ref_wav", required=True)
+    p_pipeline.add_argument("--stream_wav", required=True)
+    p_pipeline.add_argument("--video", required=True, help="Performance video to warp")
+    p_pipeline.add_argument("--session", default=None)
+    p_pipeline.add_argument("--output_dir", default="output")
+    p_pipeline.add_argument("--artifacts_dir", default="artifacts")
+    p_pipeline.add_argument("--plot_name", default="alignment.png")
+    p_pipeline.add_argument("--video_name", default="warped.mp4")
+    p_pipeline.add_argument("--subtitles", default=None)
+    p_pipeline.add_argument("--no-audio", action="store_true")
+    p_pipeline.add_argument("--sr", type=int, default=48000)
+    p_pipeline.add_argument("--feature", choices=["openl3", "mfcc", "chroma"], default="openl3")
+    p_pipeline.add_argument("--embedding_size", type=int, default=512)
+    p_pipeline.add_argument("--hop_size", type=float, default=0.1)
+    p_pipeline.add_argument("--hop_length", type=int, default=None)
+    p_pipeline.add_argument("--n_mfcc", type=int, default=20)
+    p_pipeline.add_argument("--chroma_type", choices=["cqt", "stft"], default="cqt")
+    p_pipeline.add_argument("--backend", choices=["fastdtw", "librosa", "fallback"], default="fastdtw")
+
     p_map = sub.add_parser('map-subtitles')
     _add_session_artifact_args(p_map)
     p_map.add_argument('--subtitles_csv', required=True)
@@ -161,6 +197,7 @@ def main(argv=None):
     p_warp.add_argument('--input_video', required=True)
     p_warp.add_argument('--output_video', required=True)
     p_warp.add_argument('--curve_csv', required=False)
+    p_warp.add_argument('--no-audio', action='store_true', help='Warp video only; omit audio from output')
     _add_session_artifact_args(p_warp)
 
     args = parser.parse_args(argv)
@@ -175,6 +212,8 @@ def main(argv=None):
 
     if args.cmd == 'align':
         cmd_align(args)
+    elif args.cmd == 'pipeline':
+        cmd_pipeline(args)
     elif args.cmd == 'map-subtitles':
         cmd_map_subtitles(args)
     elif args.cmd == 'plot':
