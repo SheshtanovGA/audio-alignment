@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+librosa
+openl3
+fastdtw
+scipy
+moviepy
