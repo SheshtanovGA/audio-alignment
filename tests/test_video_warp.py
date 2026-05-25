@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 from opera_align.subtitle_mapper import build_time_interpolator
-from opera_align.video_warp import map_ref_to_stream_times, prepare_warp_curve
+from opera_align.video_warp import (
+    _ref_time_at_saturation,
+    map_ref_to_stream_times,
+    prepare_warp_curve,
+)
 
 
 def test_build_time_interpolator_monotonic_max_dedupe():
@@ -51,6 +55,13 @@ def test_map_ref_to_stream_times_clamps_negative_t():
     stream = np.array([1.0, 2.0, 3.0])
     x, y = prepare_warp_curve(ref, stream, max_stream_time=10.0)
     assert map_ref_to_stream_times(-100.0, x, y, max_stream_time=10.0, ref_end=2.0) >= 0.0
+
+
+def test_ref_time_at_saturation():
+    ref = np.array([0.0, 10.0, 20.0, 30.0])
+    stream = np.array([0.0, 5.0, 10.0, 10.0])
+    x, y = prepare_warp_curve(ref, stream, max_stream_time=10.0)
+    assert _ref_time_at_saturation(x, y, 10.0, eps=0.05) == pytest.approx(20.0)
 
 
 def test_prepare_warp_curve_empty_raises():
