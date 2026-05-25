@@ -64,7 +64,7 @@ def plot_alignment(
         ax.set_title(r"$\pi^{*}$", pad=8)
         _apply_academic_axes(ax)
         ax.legend(loc="upper left", frameon=True, framealpha=0.9, edgecolor="0.8")
-
+        '''
         fig.text(
             0.5,
             0.02,
@@ -73,7 +73,7 @@ def plot_alignment(
             va="bottom",
             fontsize=7.5,
         )
-
+        '''
         if subtitles_csv:
             df_sub = pd.read_csv(subtitles_csv)
             for _, row in df_sub.iterrows():
@@ -98,7 +98,6 @@ def plot_alignment(
                     plt.Line2D([0], [0], color="0.55", linestyle=":", linewidth=0.7),
                 ]
             )
-            labels.extend(["", ""])
             ax.legend(
                 handles,
                 labels,
