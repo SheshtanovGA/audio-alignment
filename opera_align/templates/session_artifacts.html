@@ -1,0 +1,10 @@
+<fieldset>
+  <legend>Session / artifacts</legend>
+  <label>session <input type="text" name="session" placeholder="e.g. session3"></label>
+  <label>artifacts_dir <input type="text" name="artifacts_dir" value="{{ defaults.ARTIFACTS_DIR }}"></label>
+  <p class="hint">Or upload / set paths for each artifact:</p>
+  {% for name in defaults.ALIGNMENT_ARTIFACT_NAMES %}
+    <label>{{ name }} <input type="file" name="{{ name }}" accept=".npy"></label>
+    <label>Or {{ name }} path <input type="text" name="{{ name }}_path" placeholder="artifacts/session/{{ name }}.npy"></label>
+  {% endfor %}
+</fieldset>

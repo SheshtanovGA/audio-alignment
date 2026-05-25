@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>opera_align</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>opera_align</h1>
+    <p class="subtitle">Web UI — same commands and defaults as <code>python -m opera_align</code></p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <nav class="tabs">
+    {% for c in commands %}
+      <a href="{{ url_for('index', cmd=c) }}" class="tab{% if c == cmd %} active{% endif %}">{{ c }}</a>
+    {% endfor %}
+  </nav>
+
+  <form method="post" action="{{ url_for('run') }}" enctype="multipart/form-data" class="panel">
+    <input type="hidden" name="cmd" value="{{ cmd }}">
+
+    <!-- align -->
+    <section class="cmd-fields" data-cmd="align" {% if cmd != 'align' %}hidden{% endif %}>
+      <h2>align</h2>
+      <fieldset>
+        <legend>Audio</legend>
+        <label>Reference WAV <input type="file" name="ref_wav" accept="audio/*,.wav"></label>
+        <label>Or path <input type="text" name="ref_wav_path" placeholder="sources/ref.wav"></label>
+        <label>Stream WAV <input type="file" name="stream_wav" accept="audio/*,.wav"></label>
+        <label>Or path <input type="text" name="stream_wav_path" placeholder="sources/stream.wav"></label>
+        <label>Subtitles CSV (optional) <input type="file" name="subtitles" accept=".csv"></label>
+        <label>Or path <input type="text" name="subtitles_path"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Output</legend>
+        <label>out_prefix <input type="text" name="out_prefix" value="{{ defaults.ALIGN_OUT_PREFIX }}"></label>
+        <label>out_subtitles <input type="text" name="out_subtitles" value="{{ defaults.ALIGN_OUT_SUBTITLES }}"></label>
+      </fieldset>
+    </section>
+
+    <!-- pipeline -->
+    <section class="cmd-fields" data-cmd="pipeline" {% if cmd != 'pipeline' %}hidden{% endif %}>
+      <h2>pipeline</h2>
+      <fieldset>
+        <legend>Inputs</legend>
+        <label>Reference WAV <input type="file" name="ref_wav" accept="audio/*,.wav"></label>
+        <label>Or path <input type="text" name="ref_wav_path" placeholder="sources/ref.wav"></label>
+        <label>Stream WAV <input type="file" name="stream_wav" accept="audio/*,.wav"></label>
+        <label>Or path <input type="text" name="stream_wav_path" placeholder="sources/stream.wav"></label>
+        <label>Video <input type="file" name="video" accept="video/*,.mp4"></label>
+        <label>Or path <input type="text" name="video_path" placeholder="sources/stream.mp4"></label>
+        <label>Subtitles CSV (optional) <input type="file" name="subtitles" accept=".csv"></label>
+        <label>Or path <input type="text" name="subtitles_path"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Session / output</legend>
+        <label>session <input type="text" name="session" placeholder="defaults to video basename"></label>
+        <label>output_dir <input type="text" name="output_dir" value="{{ defaults.PIPELINE_OUTPUT_DIR }}"></label>
+        <label>artifacts_dir <input type="text" name="artifacts_dir" value="{{ defaults.PIPELINE_ARTIFACTS_DIR }}"></label>
+        <label>plot_name <input type="text" name="plot_name" value="{{ defaults.PIPELINE_PLOT_NAME }}"></label>
+        <label>video_name <input type="text" name="video_name" value="{{ defaults.PIPELINE_VIDEO_NAME }}"></label>
+        <label class="checkbox"><input type="checkbox" name="no_audio"> no-audio (video only)</label>
+      </fieldset>
+    </section>
+
+    <!-- map-subtitles -->
+    <section class="cmd-fields" data-cmd="map-subtitles" {% if cmd != 'map-subtitles' %}hidden{% endif %}>
+      <h2>map-subtitles</h2>
+      {% include 'session_artifacts.html' %}
+      <fieldset>
+        <legend>Subtitles</legend>
+        <label>subtitles_csv <input type="file" name="subtitles_csv" accept=".csv"></label>
+        <label>Or path <input type="text" name="subtitles_csv_path"></label>
+        <label>output_csv <input type="text" name="output_csv" value="{{ defaults.MAP_OUTPUT_CSV }}"></label>
+      </fieldset>
+    </section>
+
+    <!-- plot -->
+    <section class="cmd-fields" data-cmd="plot" {% if cmd != 'plot' %}hidden{% endif %}>
+      <h2>plot</h2>
+      {% include 'session_artifacts.html' %}
+      <fieldset>
+        <legend>Plot</legend>
+        <label>subtitles_csv (optional) <input type="file" name="subtitles_csv" accept=".csv"></label>
+        <label>Or path <input type="text" name="subtitles_csv_path"></label>
+        <label>output_png <input type="text" name="output_png" value="{{ defaults.PLOT_OUTPUT_PNG }}"></label>
+      </fieldset>
+    </section>
+
+    <!-- warp-video -->
+    <section class="cmd-fields" data-cmd="warp-video" {% if cmd != 'warp-video' %}hidden{% endif %}>
+      <h2>warp-video</h2>
+      {% include 'session_artifacts.html' %}
+      <fieldset>
+        <legend>Video</legend>
+        <label>input_video <input type="file" name="input_video" accept="video/*,.mp4"></label>
+        <label>Or path <input type="text" name="input_video_path"></label>
+        <label>output_video <input type="text" name="output_video" placeholder="required, e.g. warped.mp4"></label>
+        <label>curve_csv (optional) <input type="file" name="curve_csv" accept=".csv"></label>
+        <label>Or path <input type="text" name="curve_csv_path"></label>
+        <label class="checkbox"><input type="checkbox" name="no_audio"> no-audio</label>
+      </fieldset>
+    </section>
+
+    <!-- shared feature options (align + pipeline) -->
+    <section class="feature-fields" {% if cmd not in ['align', 'pipeline'] %}hidden{% endif %}>
+      <h2>Feature / DTW</h2>
+      <fieldset class="grid">
+        <label>sr <input type="number" name="sr" value="{{ defaults.SR }}"></label>
+        <label>feature
+          <select name="feature">
+            {% for f in defaults.FEATURE_CHOICES %}
+              <option value="{{ f }}" {% if f == defaults.FEATURE %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>embedding_size <input type="number" name="embedding_size" value="{{ defaults.EMBEDDING_SIZE }}"></label>
+        <label>hop_size <input type="number" name="hop_size" step="any" value="{{ defaults.HOP_SIZE }}"></label>
+        <label>hop_length <input type="number" name="hop_length" placeholder="empty = hop_size × sr"></label>
+        <label>n_mfcc <input type="number" name="n_mfcc" value="{{ defaults.N_MFCC }}"></label>
+        <label>chroma_type
+          <select name="chroma_type">
+            {% for c in defaults.CHROMA_TYPE_CHOICES %}
+              <option value="{{ c }}" {% if c == defaults.CHROMA_TYPE %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>backend
+          <select name="backend">
+            {% for b in defaults.BACKEND_CHOICES %}
+              <option value="{{ b }}" {% if b == defaults.BACKEND %}selected{% endif %}>{{ b }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </fieldset>
+    </section>
+
+    <p class="hint">Upload files or enter paths relative to the server working directory. Long jobs may take several minutes.</p>
+    <button type="submit">Run</button>
+  </form>
+
+  <script>
+    function syncFieldVisibility(activeCmd) {
+      document.querySelectorAll('.cmd-fields').forEach(function (el) {
+        var on = el.dataset.cmd === activeCmd;
+        el.hidden = !on;
+        el.querySelectorAll('input, select, textarea').forEach(function (inp) {
+          inp.disabled = !on;
+        });
+      });
+      var feat = document.querySelector('.feature-fields');
+      if (feat) {
+        var showFeat = activeCmd === 'align' || activeCmd === 'pipeline';
+        feat.hidden = !showFeat;
+        feat.querySelectorAll('input, select').forEach(function (inp) {
+          inp.disabled = !showFeat;
+        });
+      }
+    }
+
+    syncFieldVisibility({{ cmd|tojson }});
+
+    document.querySelectorAll('.tab').forEach(function (link) {
+      link.addEventListener('click', function () {
+        var cmd = new URL(link.href).searchParams.get('cmd');
+        syncFieldVisibility(cmd);
+      });
+    });
+
+    document.querySelector('form').addEventListener('submit', function () {
+      syncFieldVisibility(document.querySelector('input[name=cmd]').value);
+    });
+  </script>
+</body>
+</html>

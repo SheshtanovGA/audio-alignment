@@ -5,6 +5,7 @@ import os
 
 from . import io_utils, audio_features, alignment, subtitle_mapper, plotting, video_warp
 from . import pipeline as pipeline_mod
+from . import defaults as D
 
 
 def _alignment_paths_from_args(args) -> dict:
@@ -27,8 +28,8 @@ def _add_session_artifact_args(parser):
     )
     parser.add_argument(
         "--artifacts_dir",
-        default="artifacts",
-        help="Root directory for session artifacts (default: artifacts)",
+        default=D.ARTIFACTS_DIR,
+        help=f"Root directory for session artifacts (default: {D.ARTIFACTS_DIR})",
     )
     for name in io_utils.ALIGNMENT_ARTIFACT_NAMES:
         parser.add_argument(
@@ -149,16 +150,16 @@ def main(argv=None):
     p_align.add_argument('--ref_wav', required=True)
     p_align.add_argument('--stream_wav', required=True)
     p_align.add_argument('--subtitles', required=False)
-    p_align.add_argument('--out_prefix', default='artifacts/out')
-    p_align.add_argument('--out_subtitles', default='artifacts/mapped_subtitles.csv')
-    p_align.add_argument('--sr', type=int, default=48000)
-    p_align.add_argument('--feature', choices=['openl3', 'mfcc', 'chroma'], default='openl3')
-    p_align.add_argument('--embedding_size', type=int, default=512)
-    p_align.add_argument('--hop_size', type=float, default=0.1, help='Frame hop in seconds (OpenL3; default hop for librosa features)')
-    p_align.add_argument('--hop_length', type=int, default=None, help='Librosa hop in samples (mfcc/chroma); defaults to hop_size * sr')
-    p_align.add_argument('--n_mfcc', type=int, default=20)
-    p_align.add_argument('--chroma_type', choices=['cqt', 'stft'], default='cqt')
-    p_align.add_argument('--backend', choices=['fastdtw', 'librosa', 'fallback'], default='fastdtw')
+    p_align.add_argument('--out_prefix', default=D.ALIGN_OUT_PREFIX)
+    p_align.add_argument('--out_subtitles', default=D.ALIGN_OUT_SUBTITLES)
+    p_align.add_argument('--sr', type=int, default=D.SR)
+    p_align.add_argument('--feature', choices=list(D.FEATURE_CHOICES), default=D.FEATURE)
+    p_align.add_argument('--embedding_size', type=int, default=D.EMBEDDING_SIZE)
+    p_align.add_argument('--hop_size', type=float, default=D.HOP_SIZE, help='Frame hop in seconds (OpenL3; default hop for librosa features)')
+    p_align.add_argument('--hop_length', type=int, default=D.HOP_LENGTH, help='Librosa hop in samples (mfcc/chroma); defaults to hop_size * sr')
+    p_align.add_argument('--n_mfcc', type=int, default=D.N_MFCC)
+    p_align.add_argument('--chroma_type', choices=list(D.CHROMA_TYPE_CHOICES), default=D.CHROMA_TYPE)
+    p_align.add_argument('--backend', choices=list(D.BACKEND_CHOICES), default=D.BACKEND)
 
     p_pipeline = sub.add_parser(
         "pipeline",
@@ -168,30 +169,30 @@ def main(argv=None):
     p_pipeline.add_argument("--stream_wav", required=True)
     p_pipeline.add_argument("--video", required=True, help="Performance video to warp")
     p_pipeline.add_argument("--session", default=None)
-    p_pipeline.add_argument("--output_dir", default="output")
-    p_pipeline.add_argument("--artifacts_dir", default="artifacts")
-    p_pipeline.add_argument("--plot_name", default="alignment.png")
-    p_pipeline.add_argument("--video_name", default="warped.mp4")
+    p_pipeline.add_argument("--output_dir", default=D.PIPELINE_OUTPUT_DIR)
+    p_pipeline.add_argument("--artifacts_dir", default=D.PIPELINE_ARTIFACTS_DIR)
+    p_pipeline.add_argument("--plot_name", default=D.PIPELINE_PLOT_NAME)
+    p_pipeline.add_argument("--video_name", default=D.PIPELINE_VIDEO_NAME)
     p_pipeline.add_argument("--subtitles", default=None)
     p_pipeline.add_argument("--no-audio", action="store_true")
-    p_pipeline.add_argument("--sr", type=int, default=48000)
-    p_pipeline.add_argument("--feature", choices=["openl3", "mfcc", "chroma"], default="openl3")
-    p_pipeline.add_argument("--embedding_size", type=int, default=512)
-    p_pipeline.add_argument("--hop_size", type=float, default=0.1)
-    p_pipeline.add_argument("--hop_length", type=int, default=None)
-    p_pipeline.add_argument("--n_mfcc", type=int, default=20)
-    p_pipeline.add_argument("--chroma_type", choices=["cqt", "stft"], default="cqt")
-    p_pipeline.add_argument("--backend", choices=["fastdtw", "librosa", "fallback"], default="fastdtw")
+    p_pipeline.add_argument("--sr", type=int, default=D.SR)
+    p_pipeline.add_argument("--feature", choices=list(D.FEATURE_CHOICES), default=D.FEATURE)
+    p_pipeline.add_argument("--embedding_size", type=int, default=D.EMBEDDING_SIZE)
+    p_pipeline.add_argument("--hop_size", type=float, default=D.HOP_SIZE)
+    p_pipeline.add_argument("--hop_length", type=int, default=D.HOP_LENGTH)
+    p_pipeline.add_argument("--n_mfcc", type=int, default=D.N_MFCC)
+    p_pipeline.add_argument("--chroma_type", choices=list(D.CHROMA_TYPE_CHOICES), default=D.CHROMA_TYPE)
+    p_pipeline.add_argument("--backend", choices=list(D.BACKEND_CHOICES), default=D.BACKEND)
 
     p_map = sub.add_parser('map-subtitles')
     _add_session_artifact_args(p_map)
     p_map.add_argument('--subtitles_csv', required=True)
-    p_map.add_argument('--output_csv', default='mapped_subtitles.csv')
+    p_map.add_argument('--output_csv', default=D.MAP_OUTPUT_CSV)
 
     p_plot = sub.add_parser('plot')
     _add_session_artifact_args(p_plot)
     p_plot.add_argument('--subtitles_csv', required=False)
-    p_plot.add_argument('--output_png', default='alignment_plot.png')
+    p_plot.add_argument('--output_png', default=D.PLOT_OUTPUT_PNG)
 
     p_warp = sub.add_parser('warp-video')
     p_warp.add_argument('--input_video', required=True)

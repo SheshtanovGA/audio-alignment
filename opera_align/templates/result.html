@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>opera_align — result</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Result: {{ cmd }}</h1>
+    <p><a href="{{ url_for('index', cmd=cmd) }}">← Back</a></p>
+  </header>
+
+  {% if error %}
+    <p class="flash error">{{ error }}</p>
+  {% endif %}
+
+  <h2>Log</h2>
+  <pre class="log">{{ log }}</pre>
+
+  {% if outputs %}
+    <h2>Output files</h2>
+    <ul>
+      {% for f in outputs %}
+        <li><a href="{{ url_for('download_file', filepath=f) }}">{{ f }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</body>
+</html>

@@ -45,6 +45,21 @@ python -m opera_align warp-video --session session2 --input_video sources/2.mp4 
 
 Explicit paths still work and override `--session` for individual files, e.g. `--session session3 --path_ref custom/path_ref.npy`.
 
+### Web UI
+
+Same commands and defaults as the CLI (align, pipeline, map-subtitles, plot, warp-video):
+
+```
+pip install -r requirements.txt
+python -m opera_align.web
+```
+
+Open http://127.0.0.1:5000/ — upload files or enter paths under the repo working directory. Outputs appear under `output/` with download links.
+
+Optional environment variables:
+- `OPERA_ALIGN_WORK_DIR` — working directory (default: current directory)
+- `OPERA_ALIGN_UPLOAD_DIR` — uploaded file staging (default: `uploads/`)
+
 Install requirements:
 ```
 pip install -r requirements.txt

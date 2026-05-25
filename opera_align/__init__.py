@@ -8,4 +8,6 @@ __all__ = [
     "video_warp",
     "plotting",
     "cli",
+    "web",
+    "defaults",
 ]

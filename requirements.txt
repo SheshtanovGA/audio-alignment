@@ -6,3 +6,4 @@ openl3
 fastdtw
 scipy
 moviepy
+flask
