@@ -10,13 +10,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import defaults as D
-from .cli import cmd_align, cmd_map_subtitles, cmd_pipeline, cmd_plot, cmd_warp
+from .cli import cmd_align, cmd_map_subtitles, cmd_pipeline, cmd_plot, cmd_warp, cmd_assess_quality
 
 _PKG_DIR = Path(__file__).resolve().parent
 UPLOAD_ROOT = Path(os.environ.get("OPERA_ALIGN_UPLOAD_DIR", "uploads"))
 WORK_ROOT = Path(os.environ.get("OPERA_ALIGN_WORK_DIR", ".")).resolve()
 
-COMMANDS = ("align", "pipeline", "map-subtitles", "plot", "warp-video")
+COMMANDS = ("align", "pipeline", "map-subtitles", "plot", "warp-video", "assess-quality")
 
 FILE_FIELDS = {
     "align": ("ref_wav", "stream_wav", "subtitles"),
@@ -24,6 +24,7 @@ FILE_FIELDS = {
     "map-subtitles": ("subtitles_csv",),
     "plot": ("subtitles_csv",),
     "warp-video": ("input_video", "curve_csv"),
+    "assess-quality": ("control_points",),
 }
 
 PATH_OVERRIDE_FIELDS = tuple(D.ALIGNMENT_ARTIFACT_NAMES)
@@ -159,6 +160,21 @@ def _build_namespace(cmd: str, uploads: Dict[str, str]) -> argparse.Namespace:
             ns.curve_csv = None
         ns.no_audio = _form_bool("no_audio")
         return ns
+    
+    if cmd == "assess-quality":
+        ns.ref_session = request.form.get("ref_session", "").strip()
+        ns.test_session = request.form.get("test_session", "").strip()
+        ns.artifacts_dir = request.form.get("artifacts_dir", D.ARTIFACTS_DIR)
+        ns.control_points = uploads.get("control_points") or request.form.get("control_points_path") or None
+        if ns.control_points == "":
+            ns.control_points = None
+        ns.tau = float(request.form.get("tau", D.QUALITY_ASSESS_TAU))
+        ns.output_report = request.form.get("output_report", D.QUALITY_ASSESS_OUTPUT)
+        # Set artifact path overrides to None (they'll be filled from sessions)
+        for name in D.ALIGNMENT_ARTIFACT_NAMES:
+            setattr(ns, f"ref_{name}", None)
+            setattr(ns, f"test_{name}", None)
+        return ns
 
     raise ValueError(f"Unknown command: {cmd}")
 
@@ -189,6 +205,10 @@ def _validate_namespace(cmd: str, ns: argparse.Namespace) -> Optional[str]:
         if needs_artifacts and not ns.session and not all(getattr(ns, n) for n in PATH_OVERRIDE_FIELDS):
             return "Provide session, curve CSV, or all four alignment artifact paths."
         return None
+    if cmd == "assess-quality":
+        if not ns.ref_session or not ns.test_session:
+            return "Reference session and test session are required."
+        return None
     return f"Unknown command: {cmd}"
 
 
@@ -199,6 +219,7 @@ def _run_command(cmd: str, ns: argparse.Namespace) -> str:
         "map-subtitles": cmd_map_subtitles,
         "plot": cmd_plot,
         "warp-video": cmd_warp,
+        "assess-quality": cmd_assess_quality,
     }
     buf = io.StringIO()
     with redirect_stdout(buf):

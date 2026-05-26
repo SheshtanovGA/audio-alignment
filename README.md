@@ -43,11 +43,22 @@ Warp video:
 python -m opera_align warp-video --session session2 --input_video sources/2.mp4 --output_video 2_warped.mp4
 ```
 
+Assess alignment quality (compare two sessions):
+```
+python -m opera_align assess-quality --ref_session session1 --test_session session2 --tau 0.1 --output_report quality.csv
+```
+
+This command quantitatively compares alignment quality between sessions using:
+- **ATE (Average Temporal Error)**: Mean absolute error in seconds at control points
+- **Ptau (Proportion within tau)**: Percentage of control points with error < threshold
+
+The output CSV contains per-point errors and summary metrics.
+
 Explicit paths still work and override `--session` for individual files, e.g. `--session session3 --path_ref custom/path_ref.npy`.
 
 ### Web UI
 
-Same commands and defaults as the CLI (align, pipeline, map-subtitles, plot, warp-video):
+Same commands and defaults as the CLI (align, pipeline, map-subtitles, plot, warp-video, assess-quality):
 
 ```
 pip install -r requirements.txt
@@ -77,3 +88,13 @@ Note: `moviepy` requires FFmpeg. `openl3` may download model weights and is only
 | `--n_mfcc` | Number of MFCC coefficients (default `20`) |
 | `--chroma_type` | `cqt` (default) or `stft` |
 | `--backend` | DTW backend: `fastdtw`, `librosa`, or `fallback` |
+
+### Quality Assessment flags (assess-quality command)
+
+| Flag | Description |
+|------|-------------|
+| `--ref_session` | Reference session name (ground truth for alignment quality) |
+| `--test_session` | Test session name (alignment to evaluate) |
+| `--tau` | Threshold in seconds for Ptau metric (default `0.1`) |
+| `--control_points` | Path to CSV or NPY file with custom control points (default: use reference session timestamps) |
+| `--output_report` | Output CSV filename for detailed quality report (default: `quality_assessment.csv`) |

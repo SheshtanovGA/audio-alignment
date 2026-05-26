@@ -34,3 +34,7 @@ PLOT_OUTPUT_PNG = "alignment_plot.png"
 ARTIFACTS_DIR = "artifacts"
 
 ALIGNMENT_ARTIFACT_NAMES = ("ts_ref", "ts_stream", "path_ref", "path_stream")
+
+# quality assessment
+QUALITY_ASSESS_TAU = 0.1  # Threshold in seconds for Ptau
+QUALITY_ASSESS_OUTPUT = "quality_assessment.csv"

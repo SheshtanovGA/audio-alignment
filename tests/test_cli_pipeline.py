@@ -73,3 +73,73 @@ def test_cli_align_plot_warp_pipeline(tmp_path, monkeypatch):
 
     output_video = tmp_path / "output" / "test_warped.mp4"
     assert output_video.exists()
+
+
+def test_cli_assess_quality(tmp_path, monkeypatch):
+    """Test assess-quality command with two sessions."""
+    pytest.importorskip("openl3")
+
+    repo_root = Path(__file__).resolve().parents[1]
+    source_dir = repo_root / "tests" / "sources"
+
+    ref_wav = source_dir / "test_ref.wav"
+    stream_wav = source_dir / "test_stream.wav"
+
+    monkeypatch.chdir(tmp_path)
+
+    # Create output directories
+    (tmp_path / "output").mkdir(exist_ok=True)
+    (tmp_path / "artifacts").mkdir(exist_ok=True)
+
+    # Create two sessions with the same alignment (for testing purposes)
+    session1 = "test_ref_session"
+    session2 = "test_eval_session"
+
+    # Align to create session1
+    main([
+        "align",
+        "--ref_wav",
+        str(ref_wav),
+        "--stream_wav",
+        str(stream_wav),
+        "--out_prefix",
+        session1,
+    ])
+
+    # Align again to create session2 (same input, should be similar)
+    main([
+        "align",
+        "--ref_wav",
+        str(ref_wav),
+        "--stream_wav",
+        str(stream_wav),
+        "--out_prefix",
+        session2,
+    ])
+
+    # Now assess quality of session2 against session1
+    main([
+        "assess-quality",
+        "--ref_session",
+        session1,
+        "--test_session",
+        session2,
+        "--tau",
+        "0.1",
+        "--output_report",
+        "quality_report.csv",
+    ])
+
+    # Check that report was generated
+    report_file = tmp_path / "output" / "quality_report.csv"
+    assert report_file.exists()
+
+    # Load and verify report structure
+    import pandas as pd
+    df = pd.read_csv(report_file)
+    assert 'control_point_index' in df.columns
+    assert 'reference_time' in df.columns
+    assert 'predicted_time' in df.columns
+    assert 'absolute_error' in df.columns
+    assert 'within_threshold' in df.columns
+    assert len(df) > 0

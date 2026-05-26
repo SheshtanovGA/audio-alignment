@@ -114,6 +114,24 @@
       </fieldset>
     </section>
 
+    <!-- assess-quality -->
+    <section class="cmd-fields" data-cmd="assess-quality" {% if cmd != 'assess-quality' %}hidden{% endif %}>
+      <h2>assess-quality</h2>
+      <fieldset>
+        <legend>Sessions</legend>
+        <label>Reference session <input type="text" name="ref_session" placeholder="e.g., session1"></label>
+        <label>Test session <input type="text" name="test_session" placeholder="e.g., session2"></label>
+        <label>artifacts_dir <input type="text" name="artifacts_dir" value="{{ defaults.ARTIFACTS_DIR }}"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Quality Assessment</legend>
+        <label>Control points file (optional) <input type="file" name="control_points" accept=".csv,.npy"></label>
+        <label>Or path <input type="text" name="control_points_path" placeholder="defaults to reference timestamps"></label>
+        <label>tau (threshold in seconds) <input type="number" name="tau" step="any" value="{{ defaults.QUALITY_ASSESS_TAU }}"></label>
+        <label>output_report <input type="text" name="output_report" value="{{ defaults.QUALITY_ASSESS_OUTPUT }}"></label>
+      </fieldset>
+    </section>
+
     <!-- shared feature options (align + pipeline) -->
     <section class="feature-fields" {% if cmd not in ['align', 'pipeline'] %}hidden{% endif %}>
       <h2>Feature / DTW</h2>

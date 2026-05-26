@@ -2,8 +2,9 @@
 import argparse
 import numpy as np
 import os
+import pandas as pd
 
-from . import io_utils, audio_features, alignment, subtitle_mapper, plotting, video_warp
+from . import io_utils, audio_features, alignment, subtitle_mapper, plotting, video_warp, quality_metrics
 from . import pipeline as pipeline_mod
 from . import defaults as D
 
@@ -142,6 +143,99 @@ def cmd_warp(args):
     print(f"Warped video written to output/{args.session}_{args.output_video}")
 
 
+def cmd_assess_quality(args):
+    """Assess alignment quality by comparing reference and test sessions."""
+    # Load reference session artifacts
+    ref_paths = io_utils.resolve_alignment_paths(
+        session=args.ref_session,
+        artifacts_dir=args.artifacts_dir,
+        overrides={
+            "ts_ref": getattr(args, "ref_ts_ref", None),
+            "ts_stream": getattr(args, "ref_ts_stream", None),
+            "path_ref": getattr(args, "ref_path_ref", None),
+            "path_stream": getattr(args, "ref_path_stream", None),
+        },
+    )
+    
+    # Load test session artifacts
+    test_paths = io_utils.resolve_alignment_paths(
+        session=args.test_session,
+        artifacts_dir=args.artifacts_dir,
+        overrides={
+            "ts_ref": getattr(args, "test_ts_ref", None),
+            "ts_stream": getattr(args, "test_ts_stream", None),
+            "path_ref": getattr(args, "test_path_ref", None),
+            "path_stream": getattr(args, "test_path_stream", None),
+        },
+    )
+    
+    # Load all necessary arrays
+    ts_ref_ref = io_utils.safe_npy_load(ref_paths["ts_ref"])
+    ts_stream_ref = io_utils.safe_npy_load(ref_paths["ts_stream"])
+    path_ref_ref = io_utils.safe_npy_load(ref_paths["path_ref"])
+    path_stream_ref = io_utils.safe_npy_load(ref_paths["path_stream"])
+    
+    ts_ref_test = io_utils.safe_npy_load(test_paths["ts_ref"])
+    ts_stream_test = io_utils.safe_npy_load(test_paths["ts_stream"])
+    path_ref_test = io_utils.safe_npy_load(test_paths["path_ref"])
+    path_stream_test = io_utils.safe_npy_load(test_paths["path_stream"])
+    
+    # Load control points (default: reference session timestamps)
+    control_point_times = None
+    if args.control_points:
+        if args.control_points.endswith('.csv'):
+            df = io_utils.safe_csv_read(args.control_points)
+            control_point_times = df['time'].values if 'time' in df.columns else df.iloc[:, 0].values
+        else:
+            # Assume it's a path to a .npy file
+            control_point_times = io_utils.safe_npy_load(args.control_points)
+    
+    # Assess quality of test session using reference as ground truth
+    # The reference session tells us the "true" stream times
+    # For each control point time in reference, we check if the test session predicts it correctly
+    result = quality_metrics.assess_alignment_quality(
+        ts_ref=ts_ref_ref,
+        ts_stream=ts_stream_ref,
+        path_ref=path_ref_ref,
+        path_stream=path_stream_ref,
+        control_point_times=control_point_times,
+        tau=args.tau,
+    )
+    
+    # Generate output report CSV
+    report_data = {
+        'control_point_index': np.arange(result['num_control_points']),
+        'reference_time': result['control_point_times'],
+        'predicted_time': result['predicted_times'],
+        'absolute_error': result['absolute_errors'],
+        'within_threshold': result['absolute_errors'] < result['tau'],
+    }
+    df_report = pd.DataFrame(report_data)
+    
+    # Create output directory if needed
+    out_dir = "output"
+    os.makedirs(out_dir, exist_ok=True)
+    
+    # Write CSV report
+    report_path = os.path.join(out_dir, args.output_report)
+    df_report.to_csv(report_path, index=False)
+    
+    # Print summary
+    print(f"\n{'='*60}")
+    print(f"Alignment Quality Assessment")
+    print(f"{'='*60}")
+    print(f"Reference Session: {args.ref_session}")
+    print(f"Test Session: {args.test_session}")
+    print(f"Number of Control Points: {result['num_control_points']}")
+    print(f"Threshold (tau): {result['tau']:.4f} seconds")
+    print(f"\nResults:")
+    print(f"  Average Temporal Error (ATE): {result['ate']:.6f} seconds")
+    print(f"  Proportion within tau (Ptau): {result['ptau']:.4f} ({result['ptau']*100:.2f}%)")
+    print(f"\nDetailed report written to: {report_path}")
+    print(f"{'='*60}\n")
+
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='opera_align')
     sub = parser.add_subparsers(dest='cmd')
@@ -201,6 +295,57 @@ def main(argv=None):
     p_warp.add_argument('--no-audio', action='store_true', help='Warp video only; omit audio from output')
     _add_session_artifact_args(p_warp)
 
+    p_assess = sub.add_parser(
+        'assess-quality',
+        help='Assess alignment quality by comparing reference and test sessions'
+    )
+    p_assess.add_argument(
+        '--ref_session',
+        required=True,
+        help='Reference session name (ground truth alignment)',
+    )
+    p_assess.add_argument(
+        '--test_session',
+        required=True,
+        help='Test session name (alignment to evaluate)',
+    )
+    p_assess.add_argument(
+        '--artifacts_dir',
+        default=D.ARTIFACTS_DIR,
+        help=f'Root directory for session artifacts (default: {D.ARTIFACTS_DIR})',
+    )
+    # Allow explicit path overrides for reference session
+    for name in io_utils.ALIGNMENT_ARTIFACT_NAMES:
+        p_assess.add_argument(
+            f"--ref_{name}",
+            required=False,
+            help=f"Override path to reference {name}.npy",
+        )
+    # Allow explicit path overrides for test session
+    for name in io_utils.ALIGNMENT_ARTIFACT_NAMES:
+        p_assess.add_argument(
+            f"--test_{name}",
+            required=False,
+            help=f"Override path to test {name}.npy",
+        )
+    p_assess.add_argument(
+        '--control_points',
+        required=False,
+        help='Path to control points CSV or NPY file (default: use reference session timestamps)',
+    )
+    p_assess.add_argument(
+        '--tau',
+        type=float,
+        default=D.QUALITY_ASSESS_TAU,
+        help=f'Threshold in seconds for Ptau (default: {D.QUALITY_ASSESS_TAU})',
+    )
+    p_assess.add_argument(
+        '--output_report',
+        default=D.QUALITY_ASSESS_OUTPUT,
+        help=f'Output CSV report filename (default: {D.QUALITY_ASSESS_OUTPUT})',
+    )
+
+
     args = parser.parse_args(argv)
 
     if args.cmd in ('plot', 'map-subtitles', 'warp-video'):
@@ -210,6 +355,19 @@ def main(argv=None):
                 _alignment_paths_from_args(args)
             except ValueError as e:
                 parser.error(str(e))
+    
+    if args.cmd == 'assess-quality':
+        try:
+            io_utils.resolve_alignment_paths(
+                session=args.ref_session,
+                artifacts_dir=args.artifacts_dir,
+            )
+            io_utils.resolve_alignment_paths(
+                session=args.test_session,
+                artifacts_dir=args.artifacts_dir,
+            )
+        except ValueError as e:
+            parser.error(str(e))
 
     if args.cmd == 'align':
         cmd_align(args)
@@ -221,6 +379,8 @@ def main(argv=None):
         cmd_plot(args)
     elif args.cmd == 'warp-video':
         cmd_warp(args)
+    elif args.cmd == 'assess-quality':
+        cmd_assess_quality(args)
     else:
         parser.print_help()
 
