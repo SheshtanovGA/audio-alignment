@@ -1,4 +1,4 @@
-# Opera alignment refactor
+# Opera alignment 
 
 This repository contains audio-to-audio alignment using frame features and DTW. Supported feature extractors:
 

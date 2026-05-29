@@ -27,7 +27,7 @@ def test_cli_align_plot_warp_pipeline(tmp_path, monkeypatch):
 
     # Create output directories that CLI expects
     (tmp_path / "output").mkdir(exist_ok=True)
-    (tmp_path / "artifacts").mkdir(exist_ok=True)
+    (tmp_path / "cache").mkdir(exist_ok=True)
 
     out_prefix = "testsession"
     main([
@@ -44,7 +44,7 @@ def test_cli_align_plot_warp_pipeline(tmp_path, monkeypatch):
         "mapped_subtitles.csv",
     ])
 
-    artifact_dir = tmp_path / "artifacts" / out_prefix
+    artifact_dir = tmp_path / "cache" / out_prefix
     assert (artifact_dir / "ts_ref.npy").exists()
     assert (artifact_dir / "ts_stream.npy").exists()
     assert (artifact_dir / "path_ref.npy").exists()
@@ -89,7 +89,7 @@ def test_cli_assess_quality(tmp_path, monkeypatch):
 
     # Create output directories
     (tmp_path / "output").mkdir(exist_ok=True)
-    (tmp_path / "artifacts").mkdir(exist_ok=True)
+    (tmp_path / "cache").mkdir(exist_ok=True)
 
     # Create two sessions with the same alignment (for testing purposes)
     session1 = "test_ref_session"

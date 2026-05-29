@@ -15,12 +15,12 @@ CHROMA_TYPE_CHOICES = ("cqt", "stft")
 BACKEND_CHOICES = ("fastdtw", "librosa", "fallback")
 
 # align
-ALIGN_OUT_PREFIX = "artifacts/out"
-ALIGN_OUT_SUBTITLES = "artifacts/mapped_subtitles.csv"
+ALIGN_OUT_PREFIX = "cache/out"
+ALIGN_OUT_SUBTITLES = "cache/mapped_subtitles.csv"
 
 # pipeline
 PIPELINE_OUTPUT_DIR = "output"
-PIPELINE_ARTIFACTS_DIR = "artifacts"
+PIPELINE_CACHE_DIR = "cache"
 PIPELINE_PLOT_NAME = "alignment.png"
 PIPELINE_VIDEO_NAME = "warped.mp4"
 
@@ -30,8 +30,8 @@ MAP_OUTPUT_CSV = "mapped_subtitles.csv"
 # plot
 PLOT_OUTPUT_PNG = "alignment_plot.png"
 
-# session / artifacts
-ARTIFACTS_DIR = "artifacts"
+# session / cache
+CACHE_DIR = "cache"
 
 ALIGNMENT_ARTIFACT_NAMES = ("ts_ref", "ts_stream", "path_ref", "path_stream")
 

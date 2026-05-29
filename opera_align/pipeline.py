@@ -25,7 +25,7 @@ def run_alignment(
     stream_wav: str,
     session: str,
     *,
-    artifacts_dir: str = "artifacts",
+    cache_dir: str = "cache",
     sr: int = 48000,
     feature: str = "openl3",
     backend: str = "fastdtw",
@@ -35,7 +35,7 @@ def run_alignment(
     n_mfcc: int = 20,
     chroma_type: str = "cqt",
 ) -> AlignmentResult:
-    """Align stream audio to reference audio; save artifacts under artifacts_dir/session/."""
+    """Align stream audio to reference audio; save cache under cache_dir/session/."""
     import librosa
 
     openl3 = None
@@ -73,7 +73,7 @@ def run_alignment(
     print(f"Computing DTW ({backend})...")
     path_ref, path_stream = alignment.compute_dtw_path(emb_ref, emb_stream, backend=backend)
 
-    artifact_dir = os.path.join(artifacts_dir, session)
+    artifact_dir = os.path.join(cache_dir, session)
     io_utils.safe_npy_save(ts_ref, os.path.join(artifact_dir, "ts_ref.npy"))
     io_utils.safe_npy_save(ts_stream, os.path.join(artifact_dir, "ts_stream.npy"))
     io_utils.safe_npy_save(path_ref, os.path.join(artifact_dir, "path_ref.npy"))
@@ -101,7 +101,7 @@ def run_pipeline(
     session: str,
     *,
     output_dir: str = "output",
-    artifacts_dir: str = "artifacts",
+    cache_dir: str = "cache",
     plot_name: str = "alignment.png",
     video_name: str = "warped.mp4",
     subtitles_csv: Optional[str] = None,
@@ -117,13 +117,13 @@ def run_pipeline(
 ) -> dict:
     """Align audio, write alignment plot, and warp video to the reference timeline."""
     os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(artifacts_dir, exist_ok=True)
+    os.makedirs(cache_dir, exist_ok=True)
 
     result = run_alignment(
         ref_wav,
         stream_wav,
         session,
-        artifacts_dir=artifacts_dir,
+        cache_dir=cache_dir,
         sr=sr,
         feature=feature,
         backend=backend,

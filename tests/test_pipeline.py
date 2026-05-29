@@ -40,13 +40,13 @@ def test_run_pipeline_calls_steps(tmp_path, monkeypatch):
                 str(video),
                 "testsession",
                 output_dir=str(tmp_path / "output"),
-                artifacts_dir=str(tmp_path / "artifacts"),
+                cache_dir=str(tmp_path / "cache"),
                 feature="mfcc",
                 backend="librosa",
                 warp_audio=False,
             )
 
-    assert (tmp_path / "artifacts" / "testsession" / "ts_ref.npy").exists()
+    assert (tmp_path / "cache" / "testsession" / "ts_ref.npy").exists()
     assert plot_calls
     assert warp_calls
     assert Path(outputs["plot_path"]).name == "testsession_alignment.png"

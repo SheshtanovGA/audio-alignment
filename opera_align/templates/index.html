@@ -7,10 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header>
-    <h1>opera_align</h1>
-    <p class="subtitle">Web UI — same commands and defaults as <code>python -m opera_align</code></p>
-  </header>
+  
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -37,11 +34,11 @@
       <fieldset>
         <legend>Audio</legend>
         <label>Reference WAV <input type="file" name="ref_wav" accept="audio/*,.wav"></label>
-        <label>Or path <input type="text" name="ref_wav_path" placeholder="sources/ref.wav"></label>
+        <label>[path] <input type="text" name="ref_wav_path" placeholder="sources/ref.wav"></label>
         <label>Stream WAV <input type="file" name="stream_wav" accept="audio/*,.wav"></label>
-        <label>Or path <input type="text" name="stream_wav_path" placeholder="sources/stream.wav"></label>
+        <label>[path] <input type="text" name="stream_wav_path" placeholder="sources/stream.wav"></label>
         <label>Subtitles CSV (optional) <input type="file" name="subtitles" accept=".csv"></label>
-        <label>Or path <input type="text" name="subtitles_path"></label>
+        <label>[path] <input type="text" name="subtitles_path"></label>
       </fieldset>
       <fieldset>
         <legend>Output</legend>
@@ -56,19 +53,19 @@
       <fieldset>
         <legend>Inputs</legend>
         <label>Reference WAV <input type="file" name="ref_wav" accept="audio/*,.wav"></label>
-        <label>Or path <input type="text" name="ref_wav_path" placeholder="sources/ref.wav"></label>
+        <label>[path] <input type="text" name="ref_wav_path" placeholder="sources/ref.wav"></label>
         <label>Stream WAV <input type="file" name="stream_wav" accept="audio/*,.wav"></label>
-        <label>Or path <input type="text" name="stream_wav_path" placeholder="sources/stream.wav"></label>
+        <label>[path] <input type="text" name="stream_wav_path" placeholder="sources/stream.wav"></label>
         <label>Video <input type="file" name="video" accept="video/*,.mp4"></label>
-        <label>Or path <input type="text" name="video_path" placeholder="sources/stream.mp4"></label>
+        <label>[path] <input type="text" name="video_path" placeholder="sources/stream.mp4"></label>
         <label>Subtitles CSV (optional) <input type="file" name="subtitles" accept=".csv"></label>
-        <label>Or path <input type="text" name="subtitles_path"></label>
+        <label>[path] <input type="text" name="subtitles_path"></label>
       </fieldset>
       <fieldset>
         <legend>Session / output</legend>
         <label>session <input type="text" name="session" placeholder="defaults to video basename"></label>
         <label>output_dir <input type="text" name="output_dir" value="{{ defaults.PIPELINE_OUTPUT_DIR }}"></label>
-        <label>artifacts_dir <input type="text" name="artifacts_dir" value="{{ defaults.PIPELINE_ARTIFACTS_DIR }}"></label>
+        <label>cache_dir <input type="text" name="cache_dir" value="{{ defaults.PIPELINE_CACHE_DIR }}"></label>
         <label>plot_name <input type="text" name="plot_name" value="{{ defaults.PIPELINE_PLOT_NAME }}"></label>
         <label>video_name <input type="text" name="video_name" value="{{ defaults.PIPELINE_VIDEO_NAME }}"></label>
         <label class="checkbox"><input type="checkbox" name="no_audio"> no-audio (video only)</label>
@@ -78,11 +75,11 @@
     <!-- map-subtitles -->
     <section class="cmd-fields" data-cmd="map-subtitles" {% if cmd != 'map-subtitles' %}hidden{% endif %}>
       <h2>map-subtitles</h2>
-      {% include 'session_artifacts.html' %}
+      {% include 'session_cache.html' %}
       <fieldset>
         <legend>Subtitles</legend>
         <label>subtitles_csv <input type="file" name="subtitles_csv" accept=".csv"></label>
-        <label>Or path <input type="text" name="subtitles_csv_path"></label>
+        <label>[path] <input type="text" name="subtitles_csv_path"></label>
         <label>output_csv <input type="text" name="output_csv" value="{{ defaults.MAP_OUTPUT_CSV }}"></label>
       </fieldset>
     </section>
@@ -90,11 +87,11 @@
     <!-- plot -->
     <section class="cmd-fields" data-cmd="plot" {% if cmd != 'plot' %}hidden{% endif %}>
       <h2>plot</h2>
-      {% include 'session_artifacts.html' %}
+      {% include 'session_cache.html' %}
       <fieldset>
         <legend>Plot</legend>
         <label>subtitles_csv (optional) <input type="file" name="subtitles_csv" accept=".csv"></label>
-        <label>Or path <input type="text" name="subtitles_csv_path"></label>
+        <label>[path] <input type="text" name="subtitles_csv_path"></label>
         <label>output_png <input type="text" name="output_png" value="{{ defaults.PLOT_OUTPUT_PNG }}"></label>
       </fieldset>
     </section>
@@ -102,14 +99,14 @@
     <!-- warp-video -->
     <section class="cmd-fields" data-cmd="warp-video" {% if cmd != 'warp-video' %}hidden{% endif %}>
       <h2>warp-video</h2>
-      {% include 'session_artifacts.html' %}
+      {% include 'session_cache.html' %}
       <fieldset>
         <legend>Video</legend>
         <label>input_video <input type="file" name="input_video" accept="video/*,.mp4"></label>
-        <label>Or path <input type="text" name="input_video_path"></label>
+        <label>[path] <input type="text" name="input_video_path"></label>
         <label>output_video <input type="text" name="output_video" placeholder="required, e.g. warped.mp4"></label>
         <label>curve_csv (optional) <input type="file" name="curve_csv" accept=".csv"></label>
-        <label>Or path <input type="text" name="curve_csv_path"></label>
+        <label>[path] <input type="text" name="curve_csv_path"></label>
         <label class="checkbox"><input type="checkbox" name="no_audio"> no-audio</label>
       </fieldset>
     </section>
@@ -121,12 +118,12 @@
         <legend>Sessions</legend>
         <label>Reference session <input type="text" name="ref_session" placeholder="e.g., session1"></label>
         <label>Test session <input type="text" name="test_session" placeholder="e.g., session2"></label>
-        <label>artifacts_dir <input type="text" name="artifacts_dir" value="{{ defaults.ARTIFACTS_DIR }}"></label>
+        <label>cache_dir <input type="text" name="cache_dir" value="{{ defaults.CACHE_DIR }}"></label>
       </fieldset>
       <fieldset>
         <legend>Quality Assessment</legend>
         <label>Control points file (optional) <input type="file" name="control_points" accept=".csv,.npy"></label>
-        <label>Or path <input type="text" name="control_points_path" placeholder="defaults to reference timestamps"></label>
+        <label>[path] <input type="text" name="control_points_path" placeholder="defaults to reference timestamps"></label>
         <label>tau (threshold in seconds) <input type="number" name="tau" step="any" value="{{ defaults.QUALITY_ASSESS_TAU }}"></label>
         <label>output_report <input type="text" name="output_report" value="{{ defaults.QUALITY_ASSESS_OUTPUT }}"></label>
       </fieldset>

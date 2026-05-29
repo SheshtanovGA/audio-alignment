@@ -71,7 +71,7 @@ def _collect_uploads(cmd: str, job_dir: Path) -> Dict[str, str]:
         if saved:
             paths[field] = saved
     for field in PATH_OVERRIDE_FIELDS:
-        saved = _save_upload(field, job_dir / "artifacts_override")
+        saved = _save_upload(field, job_dir / "cache_override")
         if saved:
             paths[field] = saved
     return paths
@@ -90,7 +90,7 @@ def _build_namespace(cmd: str, uploads: Dict[str, str]) -> argparse.Namespace:
             ns.subtitles = None
         ns.out_prefix = form.get("out_prefix", D.ALIGN_OUT_PREFIX)
         ns.out_subtitles = form.get("out_subtitles", D.ALIGN_OUT_SUBTITLES)
-        ns.artifacts_dir = D.ARTIFACTS_DIR
+        ns.cache_dir = D.CACHE_DIR
         ns.sr = int(form.get("sr", D.SR))
         ns.feature = form.get("feature", D.FEATURE)
         ns.embedding_size = int(form.get("embedding_size", D.EMBEDDING_SIZE))
@@ -109,7 +109,7 @@ def _build_namespace(cmd: str, uploads: Dict[str, str]) -> argparse.Namespace:
         if ns.session == "":
             ns.session = None
         ns.output_dir = request.form.get("output_dir", D.PIPELINE_OUTPUT_DIR)
-        ns.artifacts_dir = request.form.get("artifacts_dir", D.PIPELINE_ARTIFACTS_DIR)
+        ns.cache_dir = request.form.get("cache_dir", D.PIPELINE_CACHE_DIR)
         ns.plot_name = request.form.get("plot_name", D.PIPELINE_PLOT_NAME)
         ns.video_name = request.form.get("video_name", D.PIPELINE_VIDEO_NAME)
         ns.subtitles = uploads.get("subtitles") or request.form.get("subtitles_path") or None
@@ -129,7 +129,7 @@ def _build_namespace(cmd: str, uploads: Dict[str, str]) -> argparse.Namespace:
     ns.session = request.form.get("session") or None
     if ns.session == "":
         ns.session = None
-    ns.artifacts_dir = request.form.get("artifacts_dir", D.ARTIFACTS_DIR)
+    ns.cache_dir = request.form.get("cache_dir", D.CACHE_DIR)
     for name in PATH_OVERRIDE_FIELDS:
         setattr(
             ns,
@@ -164,7 +164,7 @@ def _build_namespace(cmd: str, uploads: Dict[str, str]) -> argparse.Namespace:
     if cmd == "assess-quality":
         ns.ref_session = request.form.get("ref_session", "").strip()
         ns.test_session = request.form.get("test_session", "").strip()
-        ns.artifacts_dir = request.form.get("artifacts_dir", D.ARTIFACTS_DIR)
+        ns.cache_dir = request.form.get("cache_dir", D.CACHE_DIR)
         ns.control_points = uploads.get("control_points") or request.form.get("control_points_path") or None
         if ns.control_points == "":
             ns.control_points = None
@@ -201,8 +201,8 @@ def _validate_namespace(cmd: str, ns: argparse.Namespace) -> Optional[str]:
     if cmd == "warp-video":
         if not ns.input_video or not ns.output_video:
             return "Input video and output video name are required."
-        needs_artifacts = not ns.curve_csv
-        if needs_artifacts and not ns.session and not all(getattr(ns, n) for n in PATH_OVERRIDE_FIELDS):
+        needs_cache = not ns.curve_csv
+        if needs_cache and not ns.session and not all(getattr(ns, n) for n in PATH_OVERRIDE_FIELDS):
             return "Provide session, curve CSV, or all four alignment artifact paths."
         return None
     if cmd == "assess-quality":
@@ -280,8 +280,8 @@ def create_app() -> Flask:
             if cmd in ("plot", "map-subtitles", "warp-video"):
                 from .cli import _alignment_paths_from_args
 
-                needs_artifacts = cmd != "warp-video" or not ns.curve_csv
-                if needs_artifacts:
+                needs_cache = cmd != "warp-video" or not ns.curve_csv
+                if needs_cache:
                     _alignment_paths_from_args(ns)
 
             log = _run_command(cmd, ns)
@@ -326,7 +326,7 @@ def main():
     args = parser.parse_args()
     WORK_ROOT.mkdir(parents=True, exist_ok=True)
     (WORK_ROOT / "output").mkdir(exist_ok=True)
-    (WORK_ROOT / "artifacts").mkdir(exist_ok=True)
+    (WORK_ROOT / "cache").mkdir(exist_ok=True)
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     os.chdir(WORK_ROOT)
     app = create_app()

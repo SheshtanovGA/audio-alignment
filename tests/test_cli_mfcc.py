@@ -18,7 +18,7 @@ def test_cli_align_mfcc_pipeline(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     (tmp_path / "output").mkdir(exist_ok=True)
-    (tmp_path / "artifacts").mkdir(exist_ok=True)
+    (tmp_path / "cache").mkdir(exist_ok=True)
 
     out_prefix = "testsession_mfcc"
     main([
@@ -39,7 +39,7 @@ def test_cli_align_mfcc_pipeline(tmp_path, monkeypatch):
         "librosa",
     ])
 
-    artifact_dir = tmp_path / "artifacts" / out_prefix
+    artifact_dir = tmp_path / "cache" / out_prefix
     assert (artifact_dir / "ts_ref.npy").exists()
     assert (artifact_dir / "path_ref.npy").exists()
     assert (tmp_path / "output" / "mapped_subtitles_mfcc.csv").exists()

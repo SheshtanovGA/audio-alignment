@@ -21,7 +21,7 @@ def test_build_namespace_uses_cli_defaults(cmd):
         "out_prefix": D.ALIGN_OUT_PREFIX,
         "out_subtitles": D.ALIGN_OUT_SUBTITLES,
         "output_dir": D.PIPELINE_OUTPUT_DIR,
-        "artifacts_dir": D.ARTIFACTS_DIR,
+        "cache_dir": D.CACHE_DIR,
         "plot_name": D.PIPELINE_PLOT_NAME,
         "video_name": D.PIPELINE_VIDEO_NAME,
         "output_csv": D.MAP_OUTPUT_CSV,

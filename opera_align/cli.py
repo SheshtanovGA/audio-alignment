@@ -12,7 +12,7 @@ from . import defaults as D
 def _alignment_paths_from_args(args) -> dict:
     return io_utils.resolve_alignment_paths(
         session=getattr(args, "session", None),
-        artifacts_dir=getattr(args, "artifacts_dir", "artifacts"),
+        cache_dir=getattr(args, "cache_dir", "cache"),
         overrides={
             "ts_ref": getattr(args, "ts_ref", None),
             "ts_stream": getattr(args, "ts_stream", None),
@@ -25,18 +25,18 @@ def _alignment_paths_from_args(args) -> dict:
 def _add_session_artifact_args(parser):
     parser.add_argument(
         "--session",
-        help="Session name under artifacts/ (e.g. session3 -> artifacts/session3/ts_ref.npy)",
+        help="Session name under cache/ (e.g. session3 -> cache/session3/ts_ref.npy)",
     )
     parser.add_argument(
-        "--artifacts_dir",
-        default=D.ARTIFACTS_DIR,
-        help=f"Root directory for session artifacts (default: {D.ARTIFACTS_DIR})",
+        "--cache_dir",
+        default=D.CACHE_DIR,
+        help=f"Root directory for session cache (default: {D.CACHE_DIR})",
     )
     for name in io_utils.ALIGNMENT_ARTIFACT_NAMES:
         parser.add_argument(
             f"--{name}",
             required=False,
-            help=f"Override path to {name}.npy (default: <artifacts_dir>/<session>/{name}.npy)",
+            help=f"Override path to {name}.npy (default: <cache_dir>/<session>/{name}.npy)",
         )
 
 
@@ -54,12 +54,12 @@ def _align_kwargs_from_args(args):
 
 
 def cmd_align(args):
-    artifacts_dir = getattr(args, "artifacts_dir", "artifacts")
+    cache_dir = getattr(args, "cache_dir", "cache")
     result = pipeline_mod.run_alignment(
         args.ref_wav,
         args.stream_wav,
         args.out_prefix,
-        artifacts_dir=artifacts_dir,
+        cache_dir=cache_dir,
         **_align_kwargs_from_args(args),
     )
 
@@ -83,14 +83,14 @@ def cmd_pipeline(args):
         args.video,
         session,
         output_dir=args.output_dir,
-        artifacts_dir=args.artifacts_dir,
+        cache_dir=args.cache_dir,
         plot_name=args.plot_name,
         video_name=args.video_name,
         subtitles_csv=args.subtitles,
         warp_audio=not args.no_audio,
         **_align_kwargs_from_args(args),
     )
-    print(f"Artifacts: {outputs['artifact_dir']}")
+    print(f"Cache: {outputs['artifact_dir']}")
     print(f"Plot:      {outputs['plot_path']}")
     print(f"Video:     {outputs['video_path']}")
 
@@ -145,10 +145,10 @@ def cmd_warp(args):
 
 def cmd_assess_quality(args):
     """Assess alignment quality by comparing reference and test sessions."""
-    # Load reference session artifacts
+    # Load reference session cache
     ref_paths = io_utils.resolve_alignment_paths(
         session=args.ref_session,
-        artifacts_dir=args.artifacts_dir,
+        cache_dir=args.cache_dir,
         overrides={
             "ts_ref": getattr(args, "ref_ts_ref", None),
             "ts_stream": getattr(args, "ref_ts_stream", None),
@@ -157,10 +157,10 @@ def cmd_assess_quality(args):
         },
     )
     
-    # Load test session artifacts
+    # Load test session cache
     test_paths = io_utils.resolve_alignment_paths(
         session=args.test_session,
-        artifacts_dir=args.artifacts_dir,
+        cache_dir=args.cache_dir,
         overrides={
             "ts_ref": getattr(args, "test_ts_ref", None),
             "ts_stream": getattr(args, "test_ts_stream", None),
@@ -264,7 +264,7 @@ def main(argv=None):
     p_pipeline.add_argument("--video", required=True, help="Performance video to warp")
     p_pipeline.add_argument("--session", default=None)
     p_pipeline.add_argument("--output_dir", default=D.PIPELINE_OUTPUT_DIR)
-    p_pipeline.add_argument("--artifacts_dir", default=D.PIPELINE_ARTIFACTS_DIR)
+    p_pipeline.add_argument("--cache_dir", default=D.PIPELINE_CACHE_DIR)
     p_pipeline.add_argument("--plot_name", default=D.PIPELINE_PLOT_NAME)
     p_pipeline.add_argument("--video_name", default=D.PIPELINE_VIDEO_NAME)
     p_pipeline.add_argument("--subtitles", default=None)
@@ -310,9 +310,9 @@ def main(argv=None):
         help='Test session name (alignment to evaluate)',
     )
     p_assess.add_argument(
-        '--artifacts_dir',
-        default=D.ARTIFACTS_DIR,
-        help=f'Root directory for session artifacts (default: {D.ARTIFACTS_DIR})',
+        '--cache_dir',
+        default=D.CACHE_DIR,
+        help=f'Root directory for session cache (default: {D.CACHE_DIR})',
     )
     # Allow explicit path overrides for reference session
     for name in io_utils.ALIGNMENT_ARTIFACT_NAMES:
@@ -349,8 +349,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if args.cmd in ('plot', 'map-subtitles', 'warp-video'):
-        needs_artifacts = args.cmd != 'warp-video' or not args.curve_csv
-        if needs_artifacts:
+        needs_cache = args.cmd != 'warp-video' or not args.curve_csv
+        if needs_cache:
             try:
                 _alignment_paths_from_args(args)
             except ValueError as e:
@@ -360,11 +360,11 @@ def main(argv=None):
         try:
             io_utils.resolve_alignment_paths(
                 session=args.ref_session,
-                artifacts_dir=args.artifacts_dir,
+                cache_dir=args.cache_dir,
             )
             io_utils.resolve_alignment_paths(
                 session=args.test_session,
-                artifacts_dir=args.artifacts_dir,
+                cache_dir=args.cache_dir,
             )
         except ValueError as e:
             parser.error(str(e))
